@@ -1,0 +1,456 @@
+---
+title: "Gene Project"
+author: "Saba Heydari Seradj"
+format: html
+editor: visual
+---
+
+```{r}
+library(bio3d)
+```
+
+
+```{r}
+# Read your FASTA alignment file
+alignment <- read.fasta(file ="bimm143_project_msa.fst")
+
+```
+```{r}
+alignment
+```
+
+```{r}
+# Compute the sequence identity matrix
+identity_matrix <- seqidentity(alignment)
+
+# Print the matrix to verify
+print(identity_matrix)
+```
+```{r}
+# Basic heatmap
+heatmap(identity_matrix, 
+        Rowv = NA, 
+        Colv = NA, 
+        col = colorRampPalette(c("white", "blue"))(50), 
+        scale = "none", 
+        margins = c(10, 10), 
+        labRow = rownames(identity_matrix), 
+        labCol = colnames(identity_matrix))
+
+```
+
+
+
+```{r}
+# Install ggplot2 if not installed
+if (!requireNamespace("reshape2", quietly = TRUE)) {
+  install.packages("reshape2")
+}
+
+# Transform the matrix for ggplot2
+library(reshape2)
+library(ggplot2)
+
+identity_melt <- melt(identity_matrix)
+
+# Plot using ggplot2
+ggplot(identity_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(x = "Sequences", y = "Sequences", fill = "Identity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+identity_df <- as.data.frame(as.table(identity_matrix))
+
+# Verify the structure
+head(identity_df)
+```
+
+```{r}
+# Perform hierarchical clustering
+row_clusters <- hclust(dist(identity_matrix), method = "complete")
+col_clusters <- hclust(dist(t(identity_matrix)), method = "complete")
+
+# Order the rows and columns based on clustering
+row_order <- row_clusters$order
+col_order <- col_clusters$order
+
+# Reorder the matrix
+identity_matrix_clustered <- identity_matrix[row_order, col_order]
+
+# Convert the reordered matrix to a data frame for ggplot2
+identity_df_clustered <- as.data.frame(as.table(identity_matrix_clustered))
+colnames(identity_df_clustered) <- c("Sequence1", "Sequence2", "Identity")
+
+```
+
+```{r}
+library(ggplot2)
+
+# Create the heatmap
+heatmap_plot <- ggplot(identity_df_clustered, aes(x = Sequence2, y = Sequence1, fill = Identity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue", name = "Identity (%)") +
+  labs(title = "Clustered Heatmap of Sequence Identity", x = "Sequence", y = "Sequence") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5, size = 14)
+  )
+
+# Print the heatmap
+print(heatmap_plot)
+
+```
+
+```{r}
+if (!requireNamespace("ggdendro", quietly = TRUE)) install.packages("ggdendro")
+library(ggdendro)
+```
+
+```{r}
+# Perform hierarchical clustering
+row_clusters <- hclust(as.dist(1 - identity_matrix), method = "complete")
+col_clusters <- hclust(as.dist(1 - identity_matrix), method = "complete")
+
+```
+
+```{r}
+# Convert clustering into dendrogram data for ggplot
+row_dendro <- ggdendro::dendro_data(as.dendrogram(row_clusters))
+col_dendro <- ggdendro::dendro_data(as.dendrogram(col_clusters))
+
+```
+
+```{r}
+# Order the rows and columns based on clustering
+row_order <- row_clusters$order
+col_order <- col_clusters$order
+
+# Reorder the identity matrix
+identity_matrix_reordered <- identity_matrix[row_order, col_order]
+
+# Convert to data frame for ggplot
+identity_df <- as.data.frame(as.table(identity_matrix_reordered))
+colnames(identity_df) <- c("Sequence1", "Sequence2", "Identity")
+identity_df$Sequence1 <- factor(identity_df$Sequence1, levels = rownames(identity_matrix)[row_order])
+identity_df$Sequence2 <- factor(identity_df$Sequence2, levels = colnames(identity_matrix)[col_order])
+
+```
+
+```{r}
+if (!requireNamespace("grid", quietly = TRUE)) install.packages("grid")
+if (!requireNamespace("gridExtra", quietly = TRUE)) install.packages("gridExtra")
+
+
+```
+
+
+```{r}
+# Plot the heatmap
+heatmap_plot <- ggplot(identity_df, aes(x = Sequence2, y = Sequence1, fill = Identity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue", name = "Identity (%)") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5, size = 14)
+  ) +
+  labs(title = "Hierarchical Clustered Heatmap", x = "Sequences", y = "Sequences")
+
+# Plot row dendrogram
+row_dendrogram_plot <- ggplot(ggdendro::segment(row_dendro)) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
+  theme_void() +
+  coord_flip()
+
+# Plot column dendrogram
+col_dendrogram_plot <- ggplot(ggdendro::segment(col_dendro)) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
+  theme_void()
+
+# Combine plots
+library(gridExtra)
+library(grid)
+
+grid.arrange(
+  arrangeGrob(
+    row_dendrogram_plot,
+    heatmap_plot,
+    ncol = 2,
+    widths = c(1, 4)
+  ),
+  col_dendrogram_plot,
+  nrow = 2,
+  heights = c(4, 1)
+)
+
+```
+```{r}
+install.packages('RColorBrewer')
+```
+```{r}
+library(RColorBrewer)
+```
+
+
+```{r}
+# Generate a clustered heatmap
+heatmap(
+  identity_matrix,
+  Rowv = TRUE, # Cluster rows
+  Colv = TRUE, # Cluster columns
+  scale = "none", # Do not scale the values
+  col = viridis(100), # Color gradient
+  margins = c(10, 10), # Margins for axes labels
+)
+
+```
+
+```{r}
+if (!requireNamespace("viridis", quietly = TRUE)) install.packages("viridis")
+
+```
+```{r}
+library(viridis)
+```
+
+```{r}
+heatmap(
+  identity_matrix,
+  Rowv = TRUE, # Cluster rows
+  Colv = TRUE, # Cluster columns
+  scale = "none", # Do not scale the values
+  col = viridis(100), # Color gradient
+  margins = c(10, 10), # Margins for axes labels
+)
+```
+
+```{r}
+library(viridis)
+viridis_pal()(10)  # Displays the default viridis scale with 10 steps
+
+```
+
+```{r}
+identity_matrix
+```
+
+
+```{r}
+library(bio3d)
+consensus_seq <- consensus(alignment)
+```
+
+```{r}
+best_sequence
+```
+
+```{r}
+sum(consensus_seq$seq == "-")
+```
+```{r}
+sum(best_sequence =='-')
+```
+
+
+```{r}
+# Load necessary library
+library(bio3d)
+
+
+# Calculate sequence identity matrix
+
+# 1. Generate a consensus sequence
+consensus_seq <- consensus(alignment) 
+
+# 2. Find the sequence with the highest identity to all others
+row_mean_identity <- rowMeans(identity_matrix)
+best_sequence_index <- which.max(row_mean_identity)
+best_sequence <- alignment$ali[best_sequence_index, ]
+
+# Select sequence with fewer gaps for BLAST search
+query_sequence <- ifelse(sum(consensus_seq$seq == "-") < sum(best_sequence == "-"),
+                         consensus_seq,
+                         best_sequence)
+query_sequence <- gsub("-", "", query_sequence)  # Remove gaps
+query_sequence <- gsub(" ", "", query_sequence)  # Remove spaces
+# Perform BLAST search of PDB
+blast_results <- blast.pdb(query_sequence)
+
+# Visualize BLAST results (optional)
+plot.blast(blast_results)
+
+# Get top 3 unique hits (not different chains of the same structure)
+unique_hits <- unique(blast_results$pdb.id)[1:3]
+
+# Annotate hits
+annotations <- pdb.annotate(unique_hits)
+
+# Combine results
+results <- data.frame(
+  PDB_ID = annotations$id,
+  Experimental_Technique = annotations$experimentalTechnique,
+  Resolution = annotations$resolution,
+  Source_Organism = annotations$source,
+  Evalue = blast_results$evalue[1:3],
+  Sequence_Identity = blast_results$identity[1:3]
+)
+
+# Save results
+write.csv(results, "top_3_pdb_hits.csv", row.names = FALSE)
+
+# Display results
+print(results)
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+identity_matrix
+```
+
+```{r}
+identity_sums <- apply(identity_matrix, 1, sum)
+identity_sums
+```
+
+```{r}
+# Find the sequence with the highest sum of identities
+best_sequence_index <- which.max(identity_sums)
+
+# Get the name of the sequence with the highest total identity sum
+best_sequence <- rownames(identity_matrix)[best_sequence_index]
+cat("The sequence with the highest sum of identity to all others is:", best_sequence, "\n")
+cat("Sum of identities:", identity_sums[best_sequence_index], "\n")
+```
+
+```{r}
+alignment
+```
+
+
+```{r}
+best_seq <- alignment$ali[best_sequence_index, ]
+best_seq
+```
+
+```{r}
+blast_results <- blast.pdb(best_seq)
+```
+
+```{r}
+plot.blast(blast_results)
+```
+```{r}
+blast_results$hit.tbl
+```
+
+```{r}
+blast_results$hit.tbl$pdb.id
+```
+
+```{r}
+unique_hits <- unique(blast_results$hit.tbl$pdb.id)[1:3]
+unique_hits
+```
+
+```{r}
+annotations <- pdb.annotate(unique_hits)
+annotations
+```
+
+```{r}
+results <- data.frame(
+  PDB_ID = annotations$structureId,
+  Experimental_Technique = annotations$experimentalTechnique,
+  Resolution = annotations$resolution,
+  Source_Organism = annotations$source,
+  Evalue = blast_results$hit.tbl$evalue[1:3],
+  Sequence_Identity = blast_results$hit.tbl$identity[1:3]
+)
+
+# Save results
+write.csv(results, "top_3_pdb_hits.csv", row.names = FALSE)
+
+# Display results
+print(results)
+```
+
+```{r}
+consensus_seq <- consensus_seq$seq
+consensus_seq
+```
+
+```{r}
+results_dir <-  'bimm143_9db9b/'
+```
+```{r}
+# File names for all PDB models
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+
+# Print our PDB file names
+basename(pdb_files)
+```
+
+
+```{r}
+con <- consensus(alignment, cutoff = 0.9)
+con$seq
+```
+
+```{r}
+sim <- conserv(alignment)
+sim
+```
+```{r}
+index <-  which(sim==1)
+index
+```
+```{r}
+c(sim[1:171], sim[1:171])
+```
+
+```{r}
+m1.pdb
+```
+
+```{r}
+m1.pdb <- read.pdb(pdb_files[1])
+occ <- vec2resno(sim[1:length(m1.pdb$atom$resno)], m1.pdb$atom$resno)
+```
+
+
+
+```{r}
+write.pdb(m1.pdb, o=occ, file="m1_conserv.pdb")
+```
+
+
+
+```{r}
+install.packages("usethis")
+library(usethis)
+create_github_token()
+```
+```{r}
+install.packages("gitcreds")
+library(gitcreds)
+gitcreds_set()
+```
+

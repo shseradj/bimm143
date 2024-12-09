@@ -1,0 +1,183 @@
+---
+title: "class07: Machine Learning I"
+author: "Saba Heydari Seradj (A17002175)"
+format: pdf
+editor: visual
+---
+# Clustering
+
+```{r}
+# make up data with clear groups using nnorm function
+rnorm(10)
+```
+
+```{r}
+# plot a histogram of 10k points data
+hist(rnorm(10000))
+```
+
+Now, I'll make two groups with different peaks. 
+
+```{r}
+group_1 <- rnorm(10000, mean=-3)
+group_2 <- rnorm(10000, mean=3)
+hist(c(group_1, group_2))
+```
+
+```{r}
+n <- 30
+x <- c(rnorm(n, -3), rnorm(n, +3))
+hist(x)
+```
+```{r}
+# Reverses version of its argument
+y <- rev(x)
+# Takes the x and y coordinates and
+z <- cbind(x, y)
+head(z)
+```
+
+```{r}
+plot(z)
+```
+
+# K-means Clustering
+
+```{r}
+km <- kmeans(z, centers = 2)
+km
+```
+
+```{r}
+attributes(km)
+```
+What is the cluster size? 
+```{r}
+km$size
+```
+
+Cluster assignment/membership? 
+```{r}
+km$cluster
+```
+
+Cluster center? 
+```{r}
+km$centers
+```
+
+```{r}
+plot(z, col=km$cluster)
+points(km$centers, col='blue', pch=15, cex=3)
+```
+Now let's try it with 4 clusters instead of 2. 
+
+```{r}
+km4 <- kmeans(z, centers=4)
+plot(z, col=km4$cluster)
+points(km4$centers, col='blue', pch=15, cex=3)
+```
+
+# Hierarchical Clustering
+
+Using hclust() function to run hierarchical clustering.
+```{r}
+d <- dist(z)
+hc <- hclust(d)
+```
+
+```{r}
+plot(hc)
+abline(h=9, col='red')
+```
+
+```{r}
+grps <- cutree(hc, h=9)
+grps
+```
+
+```{r}
+plot(z, col=grps)
+```
+
+```{r}
+plot(hc)
+abline(h=4, col='red')
+```
+
+```{r}
+grps4 <- cutree(hc, h=4)
+grps4
+```
+
+```{r}
+plot(z, col=grps4)
+```
+
+# Importing and Checking UK Food Data
+
+```{r}
+# saving input data file into project directory
+fna.data <- 'UK_foods.csv'
+
+# store as x. 
+# I like to set my first column to be the rownames while reading in the dataset
+x <- read.csv(fna.data, row.names=1)
+```
+
+```{r}
+head(x)
+```
+
+```{r}
+dim(x)
+```
+
+The dataset has 17 rows and 4 column. The columns are England, Wales, Scotland and Ireland. The rows are food items.
+
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+
+```
+
+```{r}
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+
+```
+
+```{r}
+pairs(x, col=rainbow(10), pch=16)
+```
+
+This code provides a pairwise scatterplot matrix. Each dot represents one of the rows (foods) that are being compared pairwise for the different countries. Even with this small dataset, this is difficult to interpret.
+
+# PCA to the rescue
+
+In R, PCA is performed mainly using prcomp() function. 
+
+```{r}
+# transposing the values and performing a pca on it
+pca <- prcomp(t(x))
+
+summary(pca)
+```
+We can see the results using `summary()`. We can see that PC1 captuers 67.44% of the variance in the data. 
+
+What is inside this pca object? 
+```{r}
+attributes(pca)
+```
+```{r}
+pca$x
+```
+ Let's make a plot of pc2 vs. pc1. 
+```{r}
+plot(pca$x[,1],pca$x[,2],xlab = "PC1", ylab = "PC2")
+text(pca$x[,1], pca$x[,2], colnames(x), col=c('black', 'red', 'blue', 'darkgreen'))
+```
+ 
+```{r}
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+```
+

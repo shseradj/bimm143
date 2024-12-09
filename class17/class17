@@ -1,0 +1,59 @@
+Class 17 notes
+
+# shh [-i keyfile] username@computername
+
+ssh -i "~/Downloads/bimm143_sheydariseradj.pem" ubuntu@ec2-34-219-128-62.us-west-2.compute.amazonaws.com
+
+if file is [filename.tar.gz], have to unzip first, then untar.
+
+# to unzip
+gunzip [filename.gz]
+
+# to untar 
+tar -xvf [filename.tar] 
+
+less [filename] to see what's in the file. e.g. less README.md
+can also use more [filename]. 
+
+./fastq-dump 
+# gives you the version number
+./fastq-dump --version 
+
+# Prints out 
+echo 
+# where your commands are 
+$ PATH
+
+We need to add our new programs from the SRA toolkit to $PATH
+export PATH=$PATH:/home/ubuntu/sratoolkit.3.1.1-ubuntu64/bin
+Now the programs inside SRA bin can be called from anywhere. 
+
+# run prefetch to download the data. it creates a directory with the SRR name.
+prefetch SRR600956
+
+# extract the fastq file (SRR600956.fastq)
+fastq-dump SRR600956
+
+# find @SRR600956 in the file. How many reads there. 
+grep -c "@SRR600956" SRR600956.fastq
+
+# opening some new datasets
+fastq-dump --split-3 SRR2156848
+grep -c "@SRR2156848" *.fastq
+
+# we downloaded kallisto, unzip, untar, and add it to our path.
+export PATH=$PATH:/home/ubuntu/kallisto_linux-v0.44.0
+
+# make a file (run.sh) with my 3 lines of code. The & makes it run in the background, faster/smarter. 
+kallisto quant -i hg19.ensembl -o SRR2156848_quant SRR2156848_1.fastq SRR2156848_2.fastq & 
+xxx &
+xxx &
+
+# make the txt file (run.sh) executable
+chmod +x run.sh
+
+# run the executable txt file
+./run.sh
+
+
+scp -r -i "~/Downloads/bimm143_sheydariseradj.pem" ubuntu@ec2-34-219-128-62.us-west-2.compute.amazonaws.com:~/*_quant . 

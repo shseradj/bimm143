@@ -1,0 +1,4 @@
+"PDB_ID","Experimental_Technique","Resolution","Source_Organism","Evalue","Sequence_Identity"
+"8X80","EM",3.88,"Homo sapiens",2.01e-36,43.902
+"8DH9","EM",4.5,"Mus musculus",1.32e-35,43.03
+"7Z3R","X-ray",2.951,"Mus musculus",5.38e-30,43.243
